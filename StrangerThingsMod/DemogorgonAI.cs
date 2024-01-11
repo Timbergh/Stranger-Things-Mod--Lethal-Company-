@@ -15,6 +15,7 @@ namespace StrangerThingsMod
         private Animator anim;
         private AudioSource audioSource;
         public AudioClip[] sounds;
+        public AudioClip hitDemogorgonSFX;
         private float soundTimer;
 
         private float timer; // Timer for wandering
@@ -122,7 +123,6 @@ namespace StrangerThingsMod
             }
         }
 
-
         private void BeginChase()
         {
             myLogSource.LogInfo("Demogorgon has spotted the player! Starting to chase!");
@@ -205,6 +205,31 @@ namespace StrangerThingsMod
             {
                 AudioClip soundToPlay = sounds[Random.Range(0, sounds.Length)];
                 audioSource.PlayOneShot(soundToPlay);
+            }
+        }
+
+        public override void HitEnemy(int force = 1, PlayerControllerB playerWhoHit = null, bool playHitSFX = false)
+        {
+            base.HitEnemy(force, playerWhoHit, playHitSFX);
+
+            if (!isEnemyDead)
+            {
+                creatureSFX.PlayOneShot(hitDemogorgonSFX, 1f);
+                WalkieTalkie.TransmitOneShotAudio(creatureSFX, hitDemogorgonSFX);
+                enemyHP -= force;
+                if (IsOwner)
+                {
+                    if (enemyHP <= 0)
+                    {
+                        KillEnemyOnOwnerClient();
+                        anim.SetBool(IsWalking, false);
+                        anim.SetBool(IsRunning, false);
+                        anim.SetBool(IsCloseRunning, false);
+                        anim.SetTrigger("IsDead");
+                        myLogSource.LogInfo("Demogorgon has been killed!");
+                        return;
+                    }
+                }
             }
         }
     }
