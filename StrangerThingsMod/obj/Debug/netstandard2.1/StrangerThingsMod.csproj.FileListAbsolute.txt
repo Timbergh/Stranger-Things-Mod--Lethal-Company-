@@ -96,3 +96,4 @@ D:\Repos\Stranger Things Mod\StrangerThingsMod\bin\Debug\netstandard2.1\Stranger
 D:\Repos\Stranger Things Mod\StrangerThingsMod\bin\Debug\netstandard2.1\StrangerThingsMod.pdb
 D:\Repos\Stranger Things Mod\StrangerThingsMod\obj\Debug\netstandard2.1\StrangerThingsMod.dll
 D:\Repos\Stranger Things Mod\StrangerThingsMod\obj\Debug\netstandard2.1\StrangerThingsMod.pdb
+D:\Repos\Stranger Things Mod\StrangerThingsMod\obj\Debug\netstandard2.1\StrangerThingsMod.sourcelink.json
