@@ -67,7 +67,7 @@ namespace StrangerThingsMod
                 CheckForPlayerToChase();
             }
 
-            if (soundTimer >= 10f) // Sound interval
+            if (soundTimer >= 5f) // Sound interval
             {
                 PlayRandomSound();
                 soundTimer = 0;
