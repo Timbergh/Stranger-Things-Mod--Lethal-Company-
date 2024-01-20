@@ -2,6 +2,9 @@ using UnityEngine;
 using UnityEngine.AI;
 using BepInEx.Logging;
 using GameNetcodeStuff;
+using Unity.Netcode;
+using HarmonyLib;
+
 
 namespace StrangerThingsMod
 {
@@ -16,6 +19,8 @@ namespace StrangerThingsMod
         private AudioSource audioSource;
         public AudioClip[] sounds;
         public AudioClip hitDemogorgonSFX;
+        private AudioClip demogorgonSpawnSound;
+        public AudioClip[] screamSounds;
         private float soundTimer;
 
         private float timer; // Timer for wandering
@@ -34,6 +39,11 @@ namespace StrangerThingsMod
 
             anim = GetComponent<Animator>();
             audioSource = GetComponent<AudioSource>();
+
+            demogorgonSpawnSound = Content.LoadAudioClip("DemogorgonSpawn");
+            audioSource.PlayOneShot(demogorgonSpawnSound);
+
+            enemyHP = 7;
 
             timer = 5f; // Wander timer
             soundTimer = 0f;
@@ -61,6 +71,11 @@ namespace StrangerThingsMod
             {
                 PlayRandomSound();
                 soundTimer = 0;
+            }
+
+            if (IsServer)
+            {
+                SyncDemogorgonStateServerRpc(transform.position, transform.rotation, anim.GetBool(IsWalking), anim.GetBool(IsRunning), anim.GetBool(IsCloseRunning));
             }
         }
 
@@ -126,6 +141,11 @@ namespace StrangerThingsMod
         private void BeginChase()
         {
             myLogSource.LogInfo("Demogorgon has spotted the player! Starting to chase!");
+
+            // Randomly select one of the sounds to play
+            int randomSoundIndex = Random.Range(0, screamSounds.Length);
+            audioSource.PlayOneShot(screamSounds[randomSoundIndex]);
+
             agent.SetDestination(targetPlayer.transform.position);
             agent.speed = 7f; // Chase speed
             anim.SetBool(IsWalking, false);
@@ -221,16 +241,79 @@ namespace StrangerThingsMod
                 {
                     if (enemyHP <= 0)
                     {
-                        KillEnemyOnOwnerClient();
-                        anim.SetBool(IsWalking, false);
-                        anim.SetBool(IsRunning, false);
-                        anim.SetBool(IsCloseRunning, false);
+                        anim.SetBool("IsWalking", false);
+                        anim.SetBool("IsRunning", false);
+                        anim.SetBool("IsCloseRunning", false);
                         anim.SetTrigger("IsDead");
-                        myLogSource.LogInfo("Demogorgon has been killed!");
+
+                        MonoBehaviour[] scripts = GetComponents<MonoBehaviour>();
+                        foreach (var script in scripts)
+                        {
+                            script.enabled = false;
+                        }
+
+                        KillEnemyOnOwnerClient();
                         return;
                     }
                 }
             }
+        }
+
+        [ServerRpc]
+        public void SyncDemogorgonStateServerRpc(Vector3 position, Quaternion rotation, bool isWalking, bool isRunning, bool isCloseRunning)
+        {
+            SyncDemogorgonStateClientRpc(position, rotation, isWalking, isRunning, isCloseRunning);
+        }
+
+        [ClientRpc]
+        public void SyncDemogorgonStateClientRpc(Vector3 position, Quaternion rotation, bool isWalking, bool isRunning, bool isCloseRunning)
+        {
+            if (!IsOwner)
+            {
+                transform.position = position;
+                transform.rotation = rotation;
+                anim.SetBool(IsWalking, isWalking);
+                anim.SetBool(IsRunning, isRunning);
+                anim.SetBool(IsCloseRunning, isCloseRunning);
+            }
+        }
+
+        [ServerRpc]
+        public void ChasePlayerServerRpc(ulong playerClientId)
+        {
+            ChasePlayerClientRpc(playerClientId);
+        }
+
+        [ClientRpc]
+        private void ChasePlayerClientRpc(ulong playerClientId)
+        {
+            if (IsOwner)
+            {
+                // Find the target player based on the client ID
+                PlayerControllerB target = FindPlayerByClientId(playerClientId);
+
+                if (target != null)
+                {
+                    // Set the target player for the chase
+                    targetPlayer = target;
+
+                    // Begin chasing the player
+                    BeginChase();
+                }
+            }
+        }
+
+        private PlayerControllerB FindPlayerByClientId(ulong clientId)
+        {
+            // Assuming you have an array or list of all player scripts in the game
+            foreach (var player in FindObjectsOfType<PlayerControllerB>())
+            {
+                if (player.playerClientId == clientId)
+                {
+                    return player;
+                }
+            }
+            return null;
         }
     }
 }

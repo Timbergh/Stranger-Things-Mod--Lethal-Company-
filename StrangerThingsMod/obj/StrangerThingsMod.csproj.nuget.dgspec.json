@@ -60,6 +60,10 @@
               "target": "Package",
               "version": "[1.*, )"
             },
+            "Evaisa.LethalLib": {
+              "target": "Package",
+              "version": "[0.13.2, )"
+            },
             "UnityEngine.Modules": {
               "include": "Compile",
               "target": "Package",
@@ -82,7 +86,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.100\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.101\\RuntimeIdentifierGraph.json"
         }
       }
     }

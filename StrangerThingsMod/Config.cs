@@ -18,9 +18,9 @@ namespace StrangerThingsMod
 
         public static void Load()
         {
-            demogorgonSpawnWeight = Plugin.config.Bind<int>("Enemies", "Demogorgon", 1000, "The weight of the Demogorgon in the enemy spawn table. Higher values mean it will spawn more often.");
-        
-            version = Plugin.config.Bind<string>("Info", "Version", "1.0.0", "The version of the mod.");
+            demogorgonSpawnWeight = Plugin.config.Bind<int>("Enemies", "Demogorgon", 10000, "The weight of the Demogorgon in the enemy spawn table. Higher values mean it will spawn more often.");
+
+            version = Plugin.config.Bind<string>("Info", "Version", "0.0.1", "The version of the mod.");
         }
     }
 }

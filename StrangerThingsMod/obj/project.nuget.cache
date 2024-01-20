@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "b/Dv9yNJPJ8a8UVYSXF31FuT4498fb9G/jiV3D2MXLe0kLXQ7PLUBiCqn7d+NneHmf7ZrSHOSgyITW9EL+jxHQ==",
+  "dgSpecHash": "cca7eOzO0IcUhQY5wChe0ppAxlHmOw8QvHV09dP4VEYSAqkmbLhGLO6WUAkvMTvywFsHvjYsM4+IW8obCWhrxg==",
   "success": true,
   "projectFilePath": "D:\\Repos\\Stranger Things Mod\\StrangerThingsMod\\StrangerThingsMod.csproj",
   "expectedPackageFiles": [
@@ -8,6 +8,7 @@
     "C:\\Users\\timbe\\.nuget\\packages\\bepinex.baselib\\5.4.20\\bepinex.baselib.5.4.20.nupkg.sha512",
     "C:\\Users\\timbe\\.nuget\\packages\\bepinex.core\\5.4.21\\bepinex.core.5.4.21.nupkg.sha512",
     "C:\\Users\\timbe\\.nuget\\packages\\bepinex.plugininfoprops\\1.1.0\\bepinex.plugininfoprops.1.1.0.nupkg.sha512",
+    "C:\\Users\\timbe\\.nuget\\packages\\evaisa.lethallib\\0.13.2\\evaisa.lethallib.0.13.2.nupkg.sha512",
     "C:\\Users\\timbe\\.nuget\\packages\\harmonyx\\2.7.0\\harmonyx.2.7.0.nupkg.sha512",
     "C:\\Users\\timbe\\.nuget\\packages\\microsoft.netcore.platforms\\1.1.0\\microsoft.netcore.platforms.1.1.0.nupkg.sha512",
     "C:\\Users\\timbe\\.nuget\\packages\\microsoft.netcore.targets\\1.1.0\\microsoft.netcore.targets.1.1.0.nupkg.sha512",

@@ -36,6 +36,18 @@
           "build/BepInEx.PluginInfoProps.props": {}
         }
       },
+      "Evaisa.LethalLib/0.13.2": {
+        "type": "package",
+        "dependencies": {
+          "BepInEx.Core": "5.4.21"
+        },
+        "compile": {
+          "lib/netstandard2.1/LethalLib.dll": {}
+        },
+        "runtime": {
+          "lib/netstandard2.1/LethalLib.dll": {}
+        }
+      },
       "HarmonyX/2.7.0": {
         "type": "package",
         "dependencies": {
@@ -678,6 +690,19 @@
         "bepinex.plugininfoprops.1.1.0.nupkg.sha512",
         "bepinex.plugininfoprops.nuspec",
         "build/BepInEx.PluginInfoProps.props"
+      ]
+    },
+    "Evaisa.LethalLib/0.13.2": {
+      "sha512": "S1601JDak+DrrKXw1cu+JgKgTdNQt7crfVwksMOVT/GNo+3so5vXemAliZiAPCz7VrU3zU7jx96czDTsYjzfzA==",
+      "type": "package",
+      "path": "evaisa.lethallib/0.13.2",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.md",
+        "evaisa.lethallib.0.13.2.nupkg.sha512",
+        "evaisa.lethallib.nuspec",
+        "lib/netstandard2.1/LethalLib.dll"
       ]
     },
     "HarmonyX/2.7.0": {
@@ -2680,6 +2705,7 @@
       "BepInEx.Analyzers >= 1.*",
       "BepInEx.Core >= 5.*",
       "BepInEx.PluginInfoProps >= 1.*",
+      "Evaisa.LethalLib >= 0.13.2",
       "UnityEngine.Modules >= 2022.3.9"
     ]
   },
@@ -2690,17 +2716,17 @@
   "project": {
     "version": "0.0.1",
     "restore": {
-      "projectUniqueName": "D:\\Repos\\Stranger Things Mod\\StrangerThingsMod\\StrangerThingsMod.csproj",
+      "projectUniqueName": "d:\\Repos\\Stranger Things Mod\\StrangerThingsMod\\StrangerThingsMod.csproj",
       "projectName": "StrangerThingsMod",
-      "projectPath": "D:\\Repos\\Stranger Things Mod\\StrangerThingsMod\\StrangerThingsMod.csproj",
+      "projectPath": "d:\\Repos\\Stranger Things Mod\\StrangerThingsMod\\StrangerThingsMod.csproj",
       "packagesPath": "C:\\Users\\timbe\\.nuget\\packages\\",
-      "outputPath": "D:\\Repos\\Stranger Things Mod\\StrangerThingsMod\\obj\\",
+      "outputPath": "d:\\Repos\\Stranger Things Mod\\StrangerThingsMod\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "D:\\Repos\\Stranger Things Mod\\StrangerThingsMod\\NuGet.Config",
+        "d:\\Repos\\Stranger Things Mod\\StrangerThingsMod\\NuGet.Config",
         "C:\\Users\\timbe\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
@@ -2743,6 +2769,10 @@
             "target": "Package",
             "version": "[1.*, )"
           },
+          "Evaisa.LethalLib": {
+            "target": "Package",
+            "version": "[0.13.2, )"
+          },
           "UnityEngine.Modules": {
             "include": "Compile",
             "target": "Package",
@@ -2765,7 +2795,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.100\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.101\\RuntimeIdentifierGraph.json"
       }
     }
   }

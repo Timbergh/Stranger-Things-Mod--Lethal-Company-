@@ -1,10 +1,7 @@
 ﻿using BepInEx;
-using System.Security.Permissions;
+using HarmonyLib;
 using BepInEx.Logging;
 using BepInEx.Configuration;
-using UnityEngine;
-using System.Reflection;
-using System;
 
 namespace StrangerThingsMod
 {
@@ -26,7 +23,10 @@ namespace StrangerThingsMod
 
             StrangerThingsMod.Config.Load();
             Content.Load();
-            
+
+            var harmony = new Harmony(ModGUID);
+            harmony.PatchAll();
+
             Logger.LogInfo("Loaded StrangerThingsMod");
         }
     }

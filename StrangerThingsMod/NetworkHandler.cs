@@ -1,0 +1,35 @@
+using System;
+using Unity.Netcode;
+using UnityEngine;
+
+namespace StrangerThingsMod
+{
+    public class NetworkHandler : NetworkBehaviour
+    {
+        public static NetworkHandler Instance;
+        public static event Action<String> LevelEvent;
+
+        [ClientRpc]
+        public void EventClientRpc(string eventName)
+        {
+            LevelEvent?.Invoke(eventName); // If the event has subscribers (does not equal null), invoke the event
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        public void EventServerRPC(string eventName)
+        {
+            EventClientRpc(eventName);
+        }
+
+        public override void OnNetworkSpawn()
+        {
+            LevelEvent = null;
+
+            if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
+                Instance?.gameObject.GetComponent<NetworkObject>().Despawn();
+            Instance = this;
+
+            base.OnNetworkSpawn();
+        }
+    }
+}

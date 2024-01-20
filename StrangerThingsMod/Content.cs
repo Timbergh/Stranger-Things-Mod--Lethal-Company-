@@ -54,13 +54,24 @@ namespace StrangerThingsMod
             }
         }
 
+        public static AudioClip LoadAudioClip(string clipName)
+        {
+            if (MainAssets == null)
+            {
+                Plugin.logger.LogWarning("MainAssets is null, cannot load audio clip.");
+                return null;
+            }
+
+            return MainAssets.LoadAsset<AudioClip>(clipName);
+        }
+
         public static void Load()
         {
             TryLoadAssets();
 
             customEnemies = new List<CustomEnemy>()
             {
-                CustomEnemy.Add("Demogorgon", "Assets/Demogorgon/Demogorgon.asset", Config.demogorgonSpawnWeight.Value, Levels.LevelTypes.All, Enemies.SpawnType.Default, "Assets/Demogorgon/Bestiary/DemogorgonTK.asset", "Assets/Demogorgon/Bestiary/DemogorgonTN.asset", enabled: true),
+                CustomEnemy.Add("Demogorgon", "Assets/Demogorgon/Demogorgon.asset", Config.demogorgonSpawnWeight.Value, Levels.LevelTypes.All, Enemies.SpawnType.Default, null, "DemogorgonTN", enabled: true),
             };
 
             foreach (var enemy in customEnemies)
@@ -83,32 +94,6 @@ namespace StrangerThingsMod
                 Prefabs.Add(enemy.name, enemyAsset.enemyPrefab);
 
                 Enemies.RegisterEnemy(enemyAsset, enemy.rarity, enemy.levelFlags, enemy.spawnType, enemyInfo, enemyTerminal);
-            }
-
-            // loop through prefabs
-            foreach (var prefabSet in Prefabs)
-            {
-                var prefab = prefabSet.Value;
-
-                // get prefab name
-                var prefabName = prefabSet.Key;
-
-
-                // get all AudioSources
-                var audioSources = prefab.GetComponentsInChildren<AudioSource>();
-
-                // if has any AudioSources
-
-                // if( audioSources.Length > 0)
-                // {
-                //     var configValue = Config.VolumeConfig.Bind<float>("Volume", $"{prefabName}", 100f, $"Audio volume for {prefabName} (0 - 100)");
-
-                //     // loop through AudioSources, adjust volume by multiplier
-                //     foreach (var audioSource in audioSources)
-                //     {
-                //         audioSource.volume *= (configValue.Value / 100);
-                //     }
-                // }
             }
 
             Plugin.logger.LogInfo("Loaded content");
