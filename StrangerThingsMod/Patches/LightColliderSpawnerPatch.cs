@@ -18,7 +18,7 @@ namespace StrangerThingsMod
         public static void FinishGeneratingLevelPostfix(RoundManager __instance)
         {
             Plugin.logger.LogInfo("Adding colliders to lights");
-            eligibleLights.Clear(); // Clear the list to prevent duplicates
+            eligibleLights.Clear();
             Light[] lights = Object.FindObjectsOfType<Light>();
             GameObject[] insideNodes = __instance.insideAINodes;
             GameObject[] outsideNodes = __instance.outsideAINodes;
@@ -101,15 +101,21 @@ namespace StrangerThingsMod
 
         private IEnumerator FlickerLightAndSpawnDemogorgon()
         {
-            // Flicker light effect
-            StartCoroutine(FlickerLight());
-            audioSource.Play(); // Play light flicker sound
+            float spawnChance = 0.15f; // 15% chance to spawn
+            float randomValue = UnityEngine.Random.Range(0f, 1f); // Random value between 0 and 1
+            if (randomValue <= spawnChance)
+            {
+                // Flicker light effect
+                StartCoroutine(FlickerLight());
+                audioSource.Play(); // Play light flicker sound
 
-            // Wait for flickering duration
-            yield return new WaitForSeconds(5f);
+                // Wait for flickering duration
+                yield return new WaitForSeconds(5f);
 
-            // Spawn Demogorgon
-            Utilities.SpawnDemogorgonNearWall(transform.position);
+                // Spawn Demogorgon
+                Utilities.SpawnDemogorgonNearWall(transform.position);
+            }
+            Plugin.logger.LogInfo($"Generating random value to spawn demogorgon - Random value: {randomValue}. Spawn if random value is less than {spawnChance}");
 
             // Reset cooldown after a delay
             yield return new WaitForSeconds(115f); // 120 seconds cooldown in total

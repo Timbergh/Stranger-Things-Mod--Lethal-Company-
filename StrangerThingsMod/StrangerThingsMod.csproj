@@ -3,7 +3,7 @@
         <TargetFramework>netstandard2.1</TargetFramework>
         <AssemblyName>StrangerThingsMod</AssemblyName>
         <Description>A mod that adds stuff from Stranger Things, such as a new Demogoron enemy</Description>
-        <Version>0.0.1</Version>
+        <Version>0.0.2</Version>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>latest</LangVersion>
     </PropertyGroup>
@@ -62,9 +62,15 @@
         <Reference Include="UnityEngine.CoreModule">
             <HintPath>D:\SteamLibrary\steamapps\common\Lethal Company\Lethal Company_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
         </Reference>
+        <Reference Include="Unity.InputSystem"
+                   Version="1.7.0.0"
+                   Culture="neutral"
+                   PublicKeyToken="null">
+            <HintPath>D:\SteamLibrary\steamapps\common\Lethal Company\Lethal Company_Data\Managed\Unity.InputSystem.dll</HintPath>
+        </Reference>
     </ItemGroup>
     <Target Name="PostBuild"
             AfterTargets="PostBuildEvent">
-        <Exec Command="copy /Y &quot;$(TargetDir)$(TargetName).dll&quot; &quot;D:\SteamLibrary\steamapps\common\Lethal Company\BepInEx\plugins&quot;" />
+        <Exec Command="copy /Y &quot;$(TargetDir)$(TargetName).dll&quot; &quot;D:\SteamLibrary\steamapps\common\Lethal Company\BepInEx\plugins\StrangerThingsMod&quot;" />
     </Target>
 </Project>

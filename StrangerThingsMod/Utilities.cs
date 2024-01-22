@@ -33,8 +33,7 @@ namespace StrangerThingsMod
             foreach (var direction in directions)
             {
                 RaycastHit hit;
-                // Adjust the ray length as needed. Here, I set it to 10 units as an example.
-                if (Physics.Raycast(position, direction, out hit, 10f))
+                if (Physics.Raycast(position, direction, out hit, 20f))
                 {
                     float distance = Vector3.Distance(position, hit.point);
                     if (distance < closestDistance)

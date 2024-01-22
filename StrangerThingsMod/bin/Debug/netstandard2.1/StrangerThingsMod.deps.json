@@ -15,6 +15,7 @@
           "Evaisa.LethalLib": "0.13.2",
           "UnityEngine.Modules": "2022.3.9",
           "Assembly-CSharp": "0.0.0.0",
+          "Unity.InputSystem": "1.7.0.0",
           "Unity.Netcode.Components": "0.0.0.0",
           "Unity.Netcode.Runtime": "0.0.0.0"
         },
@@ -375,6 +376,14 @@
           }
         }
       },
+      "Unity.InputSystem/1.7.0.0": {
+        "runtime": {
+          "Unity.InputSystem.dll": {
+            "assemblyVersion": "1.7.0.0",
+            "fileVersion": "1.7.0.0"
+          }
+        }
+      },
       "Unity.Netcode.Components/0.0.0.0": {
         "runtime": {
           "Unity.Netcode.Components.dll": {
@@ -420,14 +429,6 @@
           "Facepunch.Steamworks.Win64.dll": {
             "assemblyVersion": "1.0.0.0",
             "fileVersion": "1.0.0.0"
-          }
-        }
-      },
-      "Unity.InputSystem/1.7.0.0": {
-        "runtime": {
-          "Unity.InputSystem.dll": {
-            "assemblyVersion": "1.7.0.0",
-            "fileVersion": "1.7.0.0"
           }
         }
       },
@@ -941,6 +942,11 @@
       "serviceable": false,
       "sha512": ""
     },
+    "Unity.InputSystem/1.7.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
     "Unity.Netcode.Components/0.0.0.0": {
       "type": "reference",
       "serviceable": false,
@@ -967,11 +973,6 @@
       "sha512": ""
     },
     "Facepunch.Steamworks.Win64/1.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.InputSystem/1.7.0.0": {
       "type": "reference",
       "serviceable": false,
       "sha512": ""

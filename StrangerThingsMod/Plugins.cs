@@ -2,6 +2,8 @@
 using HarmonyLib;
 using BepInEx.Logging;
 using BepInEx.Configuration;
+using System.Reflection;
+using UnityEngine;
 
 namespace StrangerThingsMod
 {
@@ -11,7 +13,7 @@ namespace StrangerThingsMod
     {
         public const string ModGUID = "tim.strangerthingsmod";
         public const string ModName = "StrangerThingsMod";
-        public const string ModVersion = "0.0.1";
+        public const string ModVersion = "0.0.2";
 
         public static ManualLogSource logger;
         public static ConfigFile config;
@@ -21,13 +23,26 @@ namespace StrangerThingsMod
             logger = Logger;
             config = Config;
 
-            StrangerThingsMod.Config.Load();
             Content.Load();
 
             var harmony = new Harmony(ModGUID);
             harmony.PatchAll();
 
-            Logger.LogInfo("Loaded StrangerThingsMod");
+            Logger.LogInfo("Loaded Stranger Things Mod");
+
+            var types = Assembly.GetExecutingAssembly().GetTypes();
+            foreach (var type in types)
+            {
+                var methods = type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                foreach (var method in methods)
+                {
+                    var attributes = method.GetCustomAttributes(typeof(RuntimeInitializeOnLoadMethodAttribute), false);
+                    if (attributes.Length > 0)
+                    {
+                        method.Invoke(null, null);
+                    }
+                }
+            }
         }
     }
 }

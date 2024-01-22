@@ -6,7 +6,7 @@ using LethalLib.Modules;
 using UnityEngine;
 using static LethalLib.Modules.ContentLoader;
 
-
+// Credit to Evaisa's LethalThings mod for this code: https://github.com/EvaisaDev/LethalThings
 namespace StrangerThingsMod
 {
     public class Content
@@ -71,7 +71,7 @@ namespace StrangerThingsMod
 
             customEnemies = new List<CustomEnemy>()
             {
-                CustomEnemy.Add("Demogorgon", "Assets/Demogorgon/Demogorgon.asset", Config.demogorgonSpawnWeight.Value, Levels.LevelTypes.All, Enemies.SpawnType.Default, null, "DemogorgonTN", enabled: true),
+                CustomEnemy.Add("Demogorgon", "Assets/Demogorgon/Demogorgon.asset", 5, Levels.LevelTypes.All, Enemies.SpawnType.Default, null, "DemogorgonTN", enabled: true),
             };
 
             foreach (var enemy in customEnemies)
