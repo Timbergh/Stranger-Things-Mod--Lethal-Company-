@@ -3,7 +3,7 @@
         <TargetFramework>netstandard2.1</TargetFramework>
         <AssemblyName>StrangerThingsMod</AssemblyName>
         <Description>A mod that adds stuff from Stranger Things, such as a new Demogoron enemy</Description>
-        <Version>0.0.2</Version>
+        <Version>0.0.3</Version>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>latest</LangVersion>
     </PropertyGroup>
