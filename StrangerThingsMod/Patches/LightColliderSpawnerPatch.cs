@@ -1,10 +1,9 @@
 using UnityEngine;
 using HarmonyLib;
 using System.Collections.Generic;
-using BepInEx.Logging;
-using StrangerThingsMod;
 using System.Collections;
-using DunGen;
+using GameNetcodeStuff;
+using UnityEngine.InputSystem;
 
 namespace StrangerThingsMod
 {
@@ -20,121 +19,97 @@ namespace StrangerThingsMod
             Plugin.logger.LogInfo("Adding colliders to lights");
             eligibleLights.Clear();
             Light[] lights = Object.FindObjectsOfType<Light>();
-            GameObject[] insideNodes = __instance.insideAINodes;
-            GameObject[] outsideNodes = __instance.outsideAINodes;
 
             foreach (Light light in lights)
             {
                 Transform parent = light.transform.parent;
-                if (parent != null && IsIndoorLight(light, insideNodes, outsideNodes) &&
+                if (parent != null &&
                     (parent.name.StartsWith("HangingLight") || parent.name.StartsWith("MansionWallLamp") || parent.name.StartsWith("Chandelier")))
                 {
                     eligibleLights.Add(light.gameObject);
-                    AddColliderToLight(light.gameObject);
+
+                    LightTriggerScript lightTriggerScript = light.gameObject.AddComponent<LightTriggerScript>();
+                    lightTriggerScript.Init(light);
                 }
             }
-        }
-
-        private static bool IsIndoorLight(Light light, GameObject[] insideNodes, GameObject[] outsideNodes)
-        {
-            // Calculate distance to nearest indoor and outdoor nodes and decide if the light is indoors
-            float minInsideDistance = FindMinDistanceToNodes(light.transform.position, insideNodes);
-            float minOutsideDistance = FindMinDistanceToNodes(light.transform.position, outsideNodes);
-            return minInsideDistance < minOutsideDistance;
-        }
-
-        private static float FindMinDistanceToNodes(Vector3 position, GameObject[] nodes)
-        {
-            float minDistance = float.MaxValue;
-            foreach (GameObject node in nodes)
-            {
-                float distance = Vector3.Distance(position, node.transform.position);
-                if (distance < minDistance)
-                {
-                    minDistance = distance;
-                }
-            }
-            return minDistance;
-        }
-
-        private static void AddColliderToLight(GameObject lightGameObject)
-        {
-            BoxCollider collider = lightGameObject.AddComponent<BoxCollider>();
-            collider.isTrigger = true;
-            collider.size = new Vector3(5f, 10f, 5f);
-            collider.center = new Vector3(0f, -5f, 0f);
-
-            LightTriggerScript triggerScript = lightGameObject.AddComponent<LightTriggerScript>();
-            triggerScript.Init(lightGameObject.GetComponent<Light>());
         }
     }
 
     public class LightTriggerScript : MonoBehaviour
     {
         private Light lightComponent;
-        private bool isOnCooldown = false;
         private AudioSource audioSource;
-        private AudioClip lightFlickerSound;
+        private AudioClip[] lightFlickerSounds;
+        private List<GameObject> demogorgons = new List<GameObject>();
+        private bool isFlickering = false;
+        private bool hasExited = true;
 
+        public Vector3 spawnPosition = PlayerControllerB.FindAnyObjectByType<PlayerControllerB>().transform.position;
 
         public void Init(Light light)
         {
             lightComponent = light;
             audioSource = gameObject.AddComponent<AudioSource>();
+            audioSource.spatialBlend = 1.0f;
 
-            // Load audio clips
-            lightFlickerSound = Content.LoadAudioClip("FlickeringLights");
-
-            audioSource.clip = lightFlickerSound;
+            lightFlickerSounds = new AudioClip[]
+            {
+                Content.LoadAudioClip("BreakerLever1"),
+                Content.LoadAudioClip("BreakerLever2"),
+                Content.LoadAudioClip("BreakerLever3"),
+                Content.LoadAudioClip("FlashlightFlicker"),
+            };
         }
 
-        private void OnTriggerEnter(Collider other)
+        public void AddDemogorgon(GameObject demogorgon)
         {
-            if (other.CompareTag("Player") && !isOnCooldown)
-            {
-                isOnCooldown = true;
-                StartCoroutine(FlickerLightAndSpawnDemogorgon());
-
-                Plugin.logger.LogInfo("Light collider triggered");
-            }
+            demogorgons.Add(demogorgon);
+            Debug.Log("Demogorgon added: " + demogorgon);
         }
 
-        private IEnumerator FlickerLightAndSpawnDemogorgon()
+        private void Update()
         {
-            float spawnChance = 0.15f; // 15% chance to spawn
-            float randomValue = UnityEngine.Random.Range(0f, 1f); // Random value between 0 and 1
-            if (randomValue <= spawnChance)
+            foreach (var demogorgon in demogorgons)
             {
-                // Flicker light effect
-                StartCoroutine(FlickerLight());
-                audioSource.Play(); // Play light flicker sound
+                if (demogorgon == null)
+                {
+                    continue;
+                }
+                float distance = Vector3.Distance(transform.position, demogorgon.transform.position);
 
-                // Wait for flickering duration
-                yield return new WaitForSeconds(5f);
-
-                // Spawn Demogorgon
-                Utilities.SpawnDemogorgonNearWall(transform.position);
+                if (distance < 5f)
+                {
+                    if (!isFlickering && hasExited)
+                    {
+                        Debug.Log("Starting FlickerLight coroutine");
+                        StartCoroutine(FlickerLight());
+                        break;
+                    }
+                }
+                else
+                {
+                    hasExited = true;
+                }
             }
-            Plugin.logger.LogInfo($"Generating random value to spawn demogorgon - Random value: {randomValue}. Spawn if random value is less than {spawnChance}");
-
-            // Reset cooldown after a delay
-            yield return new WaitForSeconds(115f); // 120 seconds cooldown in total
-            isOnCooldown = false;
         }
 
         private IEnumerator FlickerLight()
         {
-            float duration = 5f;
-            float elapsedTime = 0f;
+            Debug.Log("In FlickerLight coroutine");
+            isFlickering = true;
+            hasExited = false;
+            int flickerCount = Random.Range(1, 5);
 
-            while (elapsedTime < duration)
+            for (int i = 0; i < flickerCount; i++)
             {
+                // Play a random sound each flicker
+                audioSource.PlayOneShot(lightFlickerSounds[Random.Range(0, lightFlickerSounds.Length)]);
                 lightComponent.enabled = !lightComponent.enabled;
-                yield return new WaitForSeconds(0.2f); // Flicker interval
-                elapsedTime += 0.2f;
+                yield return new WaitForSeconds(Random.Range(0.08f, 0.3f));
             }
 
-            lightComponent.enabled = true; // Ensure light is on at the end
+            lightComponent.enabled = true;
+            isFlickering = false;
         }
     }
 }

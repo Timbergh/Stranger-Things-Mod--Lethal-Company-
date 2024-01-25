@@ -7,7 +7,7 @@
   "targets": {
     ".NETStandard,Version=v2.1": {},
     ".NETStandard,Version=v2.1/": {
-      "StrangerThingsMod/0.0.1": {
+      "StrangerThingsMod/0.0.2": {
         "dependencies": {
           "BepInEx.Analyzers": "1.0.8",
           "BepInEx.Core": "5.4.21",
@@ -659,7 +659,7 @@
     }
   },
   "libraries": {
-    "StrangerThingsMod/0.0.1": {
+    "StrangerThingsMod/0.0.2": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

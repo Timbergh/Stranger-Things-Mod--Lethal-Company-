@@ -1,20 +1,22 @@
 using UnityEngine;
 using Unity.Netcode;
+using LethalLib.Modules;
+using GameNetcodeStuff;
 
 namespace StrangerThingsMod
 {
     public class Utilities
     {
-        public static void SpawnDemogorgonNearWall(Vector3 colliderPosition)
+        public static void SpawnDemogorgon(Vector3 spawningPosition)
         {
             string prefabName = "Demogorgon";
 
             if (Content.Prefabs.ContainsKey(prefabName))
             {
-                Vector3 spawnPosition = FindWallClosestToPosition(colliderPosition);
-                Quaternion spawnRotation = Quaternion.LookRotation(-FindWallNormal(spawnPosition), Vector3.up);
+                Vector3 spawnPosition = spawningPosition;
+                Quaternion spawnRotation = Quaternion.identity;
 
-                Plugin.logger.LogInfo($"Spawning {prefabName} at wall");
+                Plugin.logger.LogInfo($"Spawning {prefabName} at light");
                 GameObject demogorgon = UnityEngine.Object.Instantiate(Content.Prefabs[prefabName], spawnPosition, spawnRotation);
                 demogorgon.GetComponent<NetworkObject>().Spawn();
             }
@@ -22,41 +24,6 @@ namespace StrangerThingsMod
             {
                 Plugin.logger.LogWarning($"Prefab {prefabName} not found!");
             }
-        }
-
-        private static Vector3 FindWallClosestToPosition(Vector3 position)
-        {
-            Vector3[] directions = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
-            RaycastHit closestHit = new RaycastHit();
-            float closestDistance = float.MaxValue;
-
-            foreach (var direction in directions)
-            {
-                RaycastHit hit;
-                if (Physics.Raycast(position, direction, out hit, 20f))
-                {
-                    float distance = Vector3.Distance(position, hit.point);
-                    if (distance < closestDistance)
-                    {
-                        closestDistance = distance;
-                        closestHit = hit;
-                    }
-                }
-            }
-
-            return closestHit.point;
-        }
-
-
-        private static Vector3 FindWallNormal(Vector3 position)
-        {
-            RaycastHit hit;
-            if (Physics.Raycast(position, Vector3.forward, out hit))
-            {
-                return hit.normal;
-            }
-
-            return Vector3.forward;
         }
     }
 }

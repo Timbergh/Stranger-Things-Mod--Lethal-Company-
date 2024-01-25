@@ -2714,19 +2714,19 @@
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
-    "version": "0.0.1",
+    "version": "0.0.2",
     "restore": {
-      "projectUniqueName": "d:\\Repos\\Stranger Things Mod\\StrangerThingsMod\\StrangerThingsMod.csproj",
+      "projectUniqueName": "D:\\Repos\\Stranger Things Mod\\StrangerThingsMod\\StrangerThingsMod.csproj",
       "projectName": "StrangerThingsMod",
-      "projectPath": "d:\\Repos\\Stranger Things Mod\\StrangerThingsMod\\StrangerThingsMod.csproj",
+      "projectPath": "D:\\Repos\\Stranger Things Mod\\StrangerThingsMod\\StrangerThingsMod.csproj",
       "packagesPath": "C:\\Users\\timbe\\.nuget\\packages\\",
-      "outputPath": "d:\\Repos\\Stranger Things Mod\\StrangerThingsMod\\obj\\",
+      "outputPath": "D:\\Repos\\Stranger Things Mod\\StrangerThingsMod\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "d:\\Repos\\Stranger Things Mod\\StrangerThingsMod\\NuGet.Config",
+        "D:\\Repos\\Stranger Things Mod\\StrangerThingsMod\\NuGet.Config",
         "C:\\Users\\timbe\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"

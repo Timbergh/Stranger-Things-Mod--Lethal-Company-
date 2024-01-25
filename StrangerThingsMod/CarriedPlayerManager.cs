@@ -1,22 +1,24 @@
+using GameNetcodeStuff;
+
 namespace StrangerThingsMod
 {
     public static class CarriedPlayerManager
     {
-        public static ulong CarriedPlayerId { get; private set; } = ulong.MaxValue;
+        public static PlayerControllerB CarriedPlayer { get; private set; } = null;
 
-        public static bool IsPlayerCarried(ulong playerId)
+        public static bool IsPlayerCarried(PlayerControllerB carriedPlayer)
         {
-            return CarriedPlayerId == playerId;
+            return CarriedPlayer == carriedPlayer;
         }
 
-        public static void SetCarriedPlayer(ulong playerId)
+        public static void SetCarriedPlayer(PlayerControllerB carriedPlayer)
         {
-            CarriedPlayerId = playerId;
+            CarriedPlayer = carriedPlayer;
         }
 
         public static void ClearCarriedPlayer()
         {
-            CarriedPlayerId = ulong.MaxValue;
+            CarriedPlayer = null;
         }
     }
 

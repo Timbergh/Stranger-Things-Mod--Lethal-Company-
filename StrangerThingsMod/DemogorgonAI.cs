@@ -11,12 +11,6 @@ namespace StrangerThingsMod
 {
     public class DemogorgonAI : EnemyAI
     {
-        // Animation hashes
-        private static readonly int IsWalking = Animator.StringToHash("IsWalking");
-        private static readonly int IsRunning = Animator.StringToHash("IsRunning");
-        private static readonly int IsCloseRunning = Animator.StringToHash("IsCloseRunning");
-        private static readonly int IsCarrying = Animator.StringToHash("IsCarrying");
-
         private Animator anim;
         private AudioSource audioSource;
         public AudioClip[] sounds;
@@ -25,18 +19,33 @@ namespace StrangerThingsMod
         public AudioClip[] screamSounds;
         private float soundTimer;
 
-        private float timer; // Timer for wandering
-        private bool investigating;
-        private Vector3 investigatePosition;
-        private float investigateTimer;
-
+        public AISearchRoutine roamMap;
+        private PlayerControllerB closestSeenPlayer;
+        private PlayerControllerB lastSeenPlayer;
+        private bool playerIsInLOS;
+        private bool isSwitchingToWandering = false;
         private bool isCarryingPlayer = false;
         private PlayerControllerB carriedPlayer = null;
         public Transform carryPoint;
         private Coroutine damageCoroutine;
         private float pickupCooldownTimer = 0f;
-
+        private bool isFleeing = false;
+        private float fleeCooldownTimer = 0f;
         private ManualLogSource myLogSource;
+
+        private bool hasStartedChasing = false;
+        public AudioClip[] stepSounds;
+        private Vector3 lastStepPosition;
+        private float stepDistance = 2f;
+        System.Random enemyRandom;
+
+        public enum DemogorgonState
+        {
+            Wandering,
+            Chasing,
+            CarryingPlayer,
+            Fleeing
+        }
 
         public override void Start()
         {
@@ -48,83 +57,61 @@ namespace StrangerThingsMod
             anim = GetComponent<Animator>();
             audioSource = GetComponent<AudioSource>();
 
+            lastStepPosition = transform.position;
+
+            stepSounds = new AudioClip[5];
+            for (int i = 0; i < 5; i++)
+            {
+                stepSounds[i] = Content.LoadAudioClip("Footstep" + (i + 1));
+            }
+
             demogorgonSpawnSound = Content.LoadAudioClip("DemogorgonSpawn");
             audioSource.PlayOneShot(demogorgonSpawnSound);
 
-            enemyHP = 6;
 
-            timer = 5f; // Wander timer
-            soundTimer = 0f;
-            investigating = false;
-            investigateTimer = 0f;
+            LightTriggerScript[] lightTriggerScripts = FindObjectsOfType<LightTriggerScript>();
+            foreach (LightTriggerScript lightTriggerScript in lightTriggerScripts)
+            {
+                lightTriggerScript.AddDemogorgon(gameObject);
+            }
+
+            enemyRandom = new System.Random(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
+
+            currentBehaviourStateIndex = (int)DemogorgonState.Wandering;
+
+            InitializeDemogorgon();
         }
 
         public void InitializeDemogorgon()
         {
             enemyHP = 6;
-            timer = 5f;
             soundTimer = 0f;
-            investigating = false;
-            investigateTimer = 0f;
             isCarryingPlayer = false;
             carriedPlayer = null;
+            fleeCooldownTimer = 0f;
             pickupCooldownTimer = 0f;
             agent.speed = 4.5f;
+            hasStartedChasing = false;
+            isFleeing = false;
 
+            currentBehaviourStateIndex = (int)DemogorgonState.Wandering;
 
-            anim.SetBool(IsWalking, false);
-            anim.SetBool(IsRunning, false);
-            anim.SetBool(IsCloseRunning, false);
-            anim.SetBool(IsCarrying, false);
-            agent.ResetPath();
-
+            anim.SetBool("IsWalking", false);
+            anim.SetBool("IsRunning", false);
+            anim.SetBool("IsCloseRunning", false);
+            anim.SetBool("IsCarrying", false);
         }
 
         public override void Update()
         {
             base.Update();
 
-            timer += Time.deltaTime;
+            if (isEnemyDead || StartOfRound.Instance.allPlayersDead)
+            {
+                return;
+            }
+
             soundTimer += Time.deltaTime;
-
-            if (investigating && !isCarryingPlayer)
-            {
-                InvestigateNoise();
-            }
-            else
-            {
-                if (!isCarryingPlayer)
-                {
-                    CheckForPlayerToChase();
-                }
-            }
-
-            if (pickupCooldownTimer > 0)
-            {
-                pickupCooldownTimer -= Time.deltaTime;
-            }
-
-            if (targetPlayer != null && !isCarryingPlayer && pickupCooldownTimer <= 0)
-            {
-                TryPickupPlayer();
-            }
-
-            if (pickupCooldownTimer <= 0)
-            {
-                agent.speed = 4.5f;
-            }
-
-            if (isCarryingPlayer && carriedPlayer != null)
-            {
-                carriedPlayer.transform.position = carryPoint.position;
-                carriedPlayer.transform.rotation = carryPoint.rotation;
-                carriedPlayer.ResetFallGravity();
-            }
-
-            if (carriedPlayer != null && carriedPlayer.isPlayerDead)
-            {
-                ReleasePlayer();
-            }
 
             if (soundTimer >= 5f) // Sound interval
             {
@@ -132,53 +119,296 @@ namespace StrangerThingsMod
                 soundTimer = 0;
             }
 
-            if (IsServer)
+            if (pickupCooldownTimer > 0f)
             {
-                SyncDemogorgonStateServerRpc(transform.position, transform.rotation, anim.GetBool(IsWalking), anim.GetBool(IsRunning), anim.GetBool(IsCloseRunning));
+                pickupCooldownTimer -= Time.deltaTime;
+            }
+
+            if (fleeCooldownTimer > 0f)
+            {
+                fleeCooldownTimer -= Time.deltaTime;
+            }
+
+            if (isCarryingPlayer && carriedPlayer != null)
+            {
+                RunAway();
+                UpdateCarriedPlayerPositionServerRpc(carryPoint.position, carryPoint.rotation);
+                carriedPlayer.ResetFallGravity();
+            }
+
+            if (Vector3.Distance(transform.position, lastStepPosition) > stepDistance)
+            {
+                OnStep();
+                lastStepPosition = transform.position;
+            }
+
+            if (stunNormalizedTimer > 0f)
+            {
+                agent.speed = 0f;
+                ReleasePlayerServerRpc();
             }
         }
 
-        private void TryPickupPlayer()
+        private void OnStep()
         {
-            float distanceToPlayer = Vector3.Distance(transform.position, targetPlayer.transform.position);
-            if (distanceToPlayer <= 1f && !CarriedPlayerManager.IsPlayerCarried(targetPlayer.playerClientId))
-            {
-                GrabPlayerServerRpc(targetPlayer.playerClientId);
+            AudioClip stepSound = stepSounds[enemyRandom.Next(0, stepSounds.Length)];
+            audioSource.PlayOneShot(stepSound, 0.7f);
+        }
 
-                Transform runAwayDestination = ChooseFarthestNodeFromPosition(targetPlayer.transform.position, avoidLineOfSight: true);
-                targetNode = runAwayDestination;
-                SetDestinationToPosition(targetNode.position);
+        public override void DoAIInterval()
+        {
+            base.DoAIInterval();
+
+            if (isEnemyDead || StartOfRound.Instance.allPlayersDead)
+            {
+                return;
             }
+
+            PlayerControllerB playerControllerB = null;
+            switch (currentBehaviourStateIndex)
+            {
+                case (int)DemogorgonState.Wandering:
+                    agent.speed = 4.5f;
+                    DoAnimationsServerRPC(true, false, false, false);
+                    if (!roamMap.inProgress && !isCarryingPlayer && !isEnemyDead && !isFleeing)
+                    {
+                        StartSearch(transform.position, roamMap);
+                        myLogSource.LogInfo("Starting search...");
+                    }
+                    playerControllerB = CheckLineOfSightForPlayer(140f, 25, 6);
+                    playerIsInLOS = playerControllerB;
+                    if (playerIsInLOS && !playerControllerB.isPlayerDead && !isCarryingPlayer && !isEnemyDead && CarriedPlayerManager.CarriedPlayer != playerControllerB)
+                    {
+                        ChangeOwnershipOfEnemy(playerControllerB.actualClientId);
+                        SwitchToBehaviourClientRpc((int)DemogorgonState.Chasing);
+                    }
+                    break;
+                case (int)DemogorgonState.Chasing:
+                    if (roamMap.inProgress)
+                    {
+                        StopSearch(roamMap);
+                    }
+                    closestSeenPlayer = CheckLineOfSightForClosestPlayer(140f, 25, 6);
+                    if (closestSeenPlayer != null)
+                    {
+                        lastSeenPlayer = closestSeenPlayer;
+                    }
+                    playerIsInLOS = closestSeenPlayer;
+                    if (playerIsInLOS && !closestSeenPlayer.isPlayerDead && !isCarryingPlayer && !isEnemyDead && CarriedPlayerManager.CarriedPlayer != closestSeenPlayer)
+                    {
+                        agent.speed = 7f;
+                        if (!hasStartedChasing)
+                        {
+                            int randomSoundIndex = enemyRandom.Next(0, screamSounds.Length);
+                            audioSource.PlayOneShot(screamSounds[randomSoundIndex]);
+                            WalkieTalkie.TransmitOneShotAudio(audioSource, screamSounds[randomSoundIndex]);
+                            hasStartedChasing = true;
+                        }
+
+                        if (closestSeenPlayer != null)
+                        {
+                            SetDestinationToPosition(closestSeenPlayer.transform.position);
+                        }
+                        myLogSource.LogInfo("Chasing player! " + closestSeenPlayer.name);
+                        DoAnimationsServerRPC(false, false, true, false);
+
+                        isSwitchingToWandering = false;
+                    }
+                    else
+                    {
+                        if (lastSeenPlayer != null)
+                        {
+                            SetDestinationToPosition(lastSeenPlayer.transform.position);
+                        }
+                        if (!isSwitchingToWandering)
+                        {
+                            myLogSource.LogInfo("Lost sight of player, loosing interest...");
+                            StartCoroutine(SwitchToWanderingIfLostPlayer(5f));
+                            isSwitchingToWandering = true;
+                        }
+                    }
+                    break;
+                case (int)DemogorgonState.CarryingPlayer:
+                    agent.speed = 5f;
+
+                    if (carriedPlayer == null || carriedPlayer.isPlayerDead || isEnemyDead)
+                    {
+                        myLogSource.LogInfo("Player is dead or enemy is dead or carriedPlayer is null, releasing player...");
+                        ReleasePlayerServerRpc();
+                    }
+                    break;
+                case (int)DemogorgonState.Fleeing:
+                    if (fleeCooldownTimer <= 0f)
+                    {
+                        isFleeing = false;
+                    }
+                    if (isFleeing)
+                    {
+                        RunAway();
+                    }
+                    else
+                    {
+                        SwitchToBehaviourClientRpc((int)DemogorgonState.Wandering);
+                    }
+                    break;
+                default:
+                    myLogSource.LogWarning("Demogorgon state not found!");
+                    break;
+            }
+        }
+
+        public override void OnCollideWithPlayer(Collider other)
+        {
+            base.OnCollideWithPlayer(other);
+            if (isEnemyDead || isCarryingPlayer)
+            {
+                return;
+            }
+
+            PlayerControllerB collidedPlayer = other.gameObject.GetComponent<PlayerControllerB>();
+
+            if (pickupCooldownTimer <= 0f && !isCarryingPlayer && !collidedPlayer.isPlayerDead && CarriedPlayerManager.CarriedPlayer != collidedPlayer)
+            {
+                myLogSource.LogInfo("Picking up player! " + collidedPlayer.name);
+                GrabPlayerServerRpc(collidedPlayer.playerClientId);
+                SwitchToBehaviourClientRpc((int)DemogorgonState.CarryingPlayer);
+            }
+
+        }
+
+        IEnumerator SwitchToWanderingIfLostPlayer(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            if (isSwitchingToWandering)
+            {
+                SwitchToBehaviourClientRpc((int)DemogorgonState.Wandering);
+                myLogSource.LogInfo("Switching to wandering...");
+            }
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        public void DoAnimationsServerRPC(bool isWalking, bool isRunning, bool isCloseRunning, bool isCarrying)
+        {
+            SetAnimationState(isWalking, isRunning, isCloseRunning, isCarrying);
+
+            DoAnimationsClientRPC(isWalking, isRunning, isCloseRunning, isCarrying);
+        }
+
+        [ClientRpc]
+        public void DoAnimationsClientRPC(bool isWalking, bool isRunning, bool isCloseRunning, bool isCarrying)
+        {
+            SetAnimationState(isWalking, isRunning, isCloseRunning, isCarrying);
+        }
+
+        private void SetAnimationState(bool isWalking, bool isRunning, bool isCloseRunning, bool isCarrying)
+        {
+            anim.SetBool("IsWalking", isWalking);
+            anim.SetBool("IsRunning", isRunning);
+            anim.SetBool("IsCloseRunning", isCloseRunning);
+            anim.SetBool("IsCarrying", isCarrying);
         }
 
         [ServerRpc(RequireOwnership = false)]
         public void GrabPlayerServerRpc(ulong playerId)
         {
+            // Find the player using the player's ID
+            var player = StartOfRound.Instance.allPlayerScripts[playerId];
+
+            this.carriedPlayer = player;
+
+            // Pass the player's ID to the ClientRpc method
             GrabPlayerClientRpc(playerId);
         }
 
         [ClientRpc]
         public void GrabPlayerClientRpc(ulong playerId)
         {
-            PlayerControllerB player = FindPlayerByClientId(playerId);
-            if (player != null)
-            {
-                carriedPlayer = player;
-                isCarryingPlayer = true;
-                CarriedPlayerManager.SetCarriedPlayer(playerId);
+            // Find the player using the player's ID
+            var carriedPlayer = StartOfRound.Instance.allPlayerScripts[playerId];
 
+            if (carriedPlayer != null)
+            {
+                isCarryingPlayer = true;
+                this.carriedPlayer = carriedPlayer;
+                CarriedPlayerManager.SetCarriedPlayer(carriedPlayer);
                 carriedPlayer.playerActions.Movement.Move.Disable();
                 carriedPlayer.playerActions.Movement.Jump.Disable();
                 carriedPlayer.playerActions.Movement.Sprint.Disable();
                 carriedPlayer.playerActions.Movement.Crouch.Disable();
-
-                anim.SetBool(IsCarrying, true);
-
-                if (damageCoroutine != null)
-                {
-                    StopCoroutine(damageCoroutine);
-                }
+                DoAnimationsServerRPC(false, false, false, true);
                 damageCoroutine = StartCoroutine(DamagePlayerOverTime());
+
+                carriedPlayer.transform.position = carryPoint.position;
+                carriedPlayer.transform.rotation = carryPoint.rotation;
+                carriedPlayer.ResetFallGravity();
+            }
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        public void ReleasePlayerServerRpc()
+        {
+            ReleasePlayer();
+
+            ReleasePlayerClientRpc();
+        }
+
+        [ClientRpc]
+        public void ReleasePlayerClientRpc()
+        {
+            ReleasePlayer();
+        }
+
+        private void ReleasePlayer()
+        {
+            if (isCarryingPlayer && carriedPlayer != null)
+            {
+                carriedPlayer.transform.parent = null;
+                carriedPlayer.playerActions.Movement.Move.Enable();
+                carriedPlayer.playerActions.Movement.Jump.Enable();
+                carriedPlayer.playerActions.Movement.Sprint.Enable();
+                carriedPlayer.playerActions.Movement.Crouch.Enable();
+                carriedPlayer.takingFallDamage = true;
+                DoAnimationsServerRPC(true, false, false, false);
+                StopCoroutine(damageCoroutine);
+                isCarryingPlayer = false;
+                CarriedPlayerManager.ClearCarriedPlayer();
+                pickupCooldownTimer = 5f;
+                isFleeing = true;
+                fleeCooldownTimer = 5f;
+                carriedPlayer = null;
+                SwitchToBehaviourClientRpc((int)DemogorgonState.Fleeing);
+            }
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        public void UpdateCarriedPlayerPositionServerRpc(Vector3 position, Quaternion rotation)
+        {
+            carriedPlayer.transform.position = position;
+            carriedPlayer.transform.rotation = rotation;
+
+            UpdateCarriedPlayerPositionClientRpc(position, rotation);
+        }
+
+        [ClientRpc]
+        public void UpdateCarriedPlayerPositionClientRpc(Vector3 position, Quaternion rotation)
+        {
+            carriedPlayer.transform.position = position;
+            carriedPlayer.transform.rotation = rotation;
+        }
+
+        private void RunAway()
+        {
+            if (isEnemyDead || agent.hasPath || agent.pathPending || fleeCooldownTimer > 0f)
+            {
+                return;
+            }
+
+            Transform runAwayTransform = ChooseFarthestNodeFromPosition(transform.position, avoidLineOfSight: true);
+            if (runAwayTransform != null)
+            {
+                targetNode = runAwayTransform;
+                SetDestinationToPosition(targetNode.position);
+                return;
             }
         }
 
@@ -192,178 +422,6 @@ namespace StrangerThingsMod
                     carriedPlayer.DamagePlayer(15); // Damage amount
                 }
             }
-        }
-
-        private void ReleasePlayer()
-        {
-            if (isCarryingPlayer && carriedPlayer != null)
-            {
-                carriedPlayer.transform.parent = null;
-
-                if (carriedPlayer.playerActions != null)
-                {
-                    carriedPlayer.playerActions.Movement.Move.Enable();
-                    carriedPlayer.playerActions.Movement.Jump.Enable();
-                    carriedPlayer.playerActions.Movement.Sprint.Enable();
-                    carriedPlayer.playerActions.Movement.Crouch.Enable();
-                }
-                carriedPlayer.takingFallDamage = true;
-
-                anim.SetBool(IsCarrying, false);
-
-                if (damageCoroutine != null)
-                {
-                    StopCoroutine(damageCoroutine);
-                }
-
-                isCarryingPlayer = false;
-                CarriedPlayerManager.ClearCarriedPlayer();
-                agent.speed = 2f;
-                pickupCooldownTimer = 5f;
-
-                carriedPlayer = null;
-            }
-        }
-
-
-        private void InvestigateNoise()
-        {
-            if (investigateTimer < 10f) // Investigate duration
-            {
-                if (Vector3.Distance(transform.position, investigatePosition) > 2f)
-                {
-                    agent.SetDestination(investigatePosition);
-                    agent.speed = 4.5f; // Investigation speed
-                    anim.SetBool(IsWalking, true);
-                }
-                investigateTimer += Time.deltaTime;
-            }
-            else
-            {
-                EndInvestigation();
-            }
-        }
-
-        private void EndInvestigation()
-        {
-            investigating = false;
-            investigateTimer = 0f;
-            Wander();
-        }
-
-        public override void DetectNoise(Vector3 noisePosition, float noiseLoudness, int timesPlayedInOneSpot = 0, int noiseID = 0)
-        {
-            base.DetectNoise(noisePosition, noiseLoudness, timesPlayedInOneSpot, noiseID);
-
-            if (targetPlayer == null && !investigating && noiseLoudness > 2f) // Noise threshold
-            {
-                investigatePosition = noisePosition;
-                investigating = true;
-                investigateTimer = 0f;
-                myLogSource.LogInfo("Demogorgon heard a noise and is investigating!");
-            }
-        }
-
-        private void CheckForPlayerToChase()
-        {
-            if (targetPlayer == null)
-            {
-                PlayerControllerB potentialTarget = CheckLineOfSightForClosestPlayer(120f, 500);
-                if (potentialTarget != null)
-                {
-                    float distanceToPotentialTarget = Vector3.Distance(transform.position, potentialTarget.transform.position);
-                    if (distanceToPotentialTarget <= 30f && !CarriedPlayerManager.IsPlayerCarried(potentialTarget.playerClientId)) // Chase distance
-                    {
-                        targetPlayer = potentialTarget;
-                        BeginChase();
-                    }
-                }
-            }
-            else
-            {
-                ContinueOrEndChase();
-            }
-        }
-
-        private void BeginChase()
-        {
-            myLogSource.LogInfo("Demogorgon has spotted the player! Starting to chase!");
-
-            // Randomly select one of the sounds to play
-            int randomSoundIndex = Random.Range(0, screamSounds.Length);
-            audioSource.PlayOneShot(screamSounds[randomSoundIndex]);
-
-            agent.SetDestination(targetPlayer.transform.position);
-            agent.speed = 7f; // Chase speed
-            anim.SetBool(IsWalking, false);
-            anim.SetBool(IsRunning, true);
-        }
-
-        private void ContinueOrEndChase()
-        {
-            float distanceToPlayer = Vector3.Distance(transform.position, targetPlayer.transform.position);
-            if (distanceToPlayer > 30f) // Chase distance
-            {
-                EndChase();
-            }
-            else if (distanceToPlayer <= 15f) // Close chase distance
-            {
-                CloseRangeChase();
-            }
-            else
-            {
-                agent.SetDestination(targetPlayer.transform.position);
-                agent.speed = 7f; // Chase speed
-                anim.SetBool(IsWalking, false);
-                anim.SetBool(IsRunning, true);
-                anim.SetBool(IsCloseRunning, false);
-            }
-        }
-
-        private void EndChase()
-        {
-            targetPlayer = null;
-            timer = 5f; // Reset wander timer
-            agent.speed = 4.5f; // Normal speed
-            anim.SetBool(IsRunning, false);
-            anim.SetBool(IsCloseRunning, false);
-            anim.SetBool(IsWalking, true);
-        }
-
-        private void CloseRangeChase()
-        {
-            agent.SetDestination(targetPlayer.transform.position);
-            agent.speed = 7f; // Close chase speed
-            anim.SetBool(IsRunning, false);
-            anim.SetBool(IsCloseRunning, true);
-        }
-
-        private void Wander()
-        {
-            if (timer >= 5f) // Wander timer
-            {
-                Vector3 newPos = RandomNavmeshLocation(10f); // Wander radius
-                if (newPos != Vector3.zero)
-                {
-                    agent.SetDestination(newPos);
-                    timer = 0;
-                    anim.SetBool(IsWalking, true);
-                    anim.SetBool(IsRunning, false);
-                    anim.SetBool(IsCloseRunning, false);
-                }
-            }
-        }
-
-        private Vector3 RandomNavmeshLocation(float radius)
-        {
-            Vector3 randomDirection = Random.insideUnitSphere * radius;
-            randomDirection += transform.position;
-            NavMeshHit hit;
-            if (NavMesh.SamplePosition(randomDirection, out hit, radius, NavMesh.AllAreas))
-            {
-                return hit.position;
-            }
-            return Vector3.zero;
         }
 
         private void PlayRandomSound()
@@ -384,87 +442,19 @@ namespace StrangerThingsMod
                 creatureSFX.PlayOneShot(hitDemogorgonSFX, 1f);
                 WalkieTalkie.TransmitOneShotAudio(creatureSFX, hitDemogorgonSFX);
                 enemyHP -= force;
+                if (isCarryingPlayer)
+                {
+                    ReleasePlayerServerRpc();
+                }
                 if (IsOwner)
                 {
-                    if (isCarryingPlayer)
+                    if (enemyHP <= 0 && !isEnemyDead)
                     {
-                        ReleasePlayer();
-                    }
-                    if (enemyHP <= 0)
-                    {
-                        anim.SetBool("IsWalking", false);
-                        anim.SetBool("IsRunning", false);
-                        anim.SetBool("IsCloseRunning", false);
-                        anim.SetTrigger("IsDead");
-
-                        MonoBehaviour[] scripts = GetComponents<MonoBehaviour>();
-                        foreach (var script in scripts)
-                        {
-                            script.enabled = false;
-                        }
-
                         KillEnemyOnOwnerClient();
                         return;
                     }
                 }
             }
-        }
-
-
-        [ServerRpc]
-        public void SyncDemogorgonStateServerRpc(Vector3 position, Quaternion rotation, bool isWalking, bool isRunning, bool isCloseRunning)
-        {
-            SyncDemogorgonStateClientRpc(position, rotation, isWalking, isRunning, isCloseRunning);
-        }
-
-        [ClientRpc]
-        public void SyncDemogorgonStateClientRpc(Vector3 position, Quaternion rotation, bool isWalking, bool isRunning, bool isCloseRunning)
-        {
-            if (!IsOwner)
-            {
-                transform.position = position;
-                transform.rotation = rotation;
-                anim.SetBool(IsWalking, isWalking);
-                anim.SetBool(IsRunning, isRunning);
-                anim.SetBool(IsCloseRunning, isCloseRunning);
-            }
-        }
-
-        [ServerRpc]
-        public void ChasePlayerServerRpc(ulong playerClientId)
-        {
-            ChasePlayerClientRpc(playerClientId);
-        }
-
-        [ClientRpc]
-        private void ChasePlayerClientRpc(ulong playerClientId)
-        {
-            if (IsOwner)
-            {
-                // Find the target player based on the client ID
-                PlayerControllerB target = FindPlayerByClientId(playerClientId);
-
-                if (target != null)
-                {
-                    // Set the target player for the chase
-                    targetPlayer = target;
-
-                    // Begin chasing the player
-                    BeginChase();
-                }
-            }
-        }
-
-        private PlayerControllerB FindPlayerByClientId(ulong clientId)
-        {
-            foreach (var player in FindObjectsOfType<PlayerControllerB>())
-            {
-                if (player.playerClientId == clientId)
-                {
-                    return player;
-                }
-            }
-            return null;
         }
     }
 }

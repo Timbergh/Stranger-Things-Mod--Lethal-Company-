@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("A mod that adds stuff from Stranger Things, such as a new Demogoron enemy")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("0.0.2.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.0.2+75f5c6ba2a065f9c9ca3bf98e13fca60d77538f3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.0.2+759b358533a91db7140502cb019f18c5ca8c4ee8")]
 [assembly: System.Reflection.AssemblyProductAttribute("StrangerThingsMod")]
 [assembly: System.Reflection.AssemblyTitleAttribute("StrangerThingsMod")]
 [assembly: System.Reflection.AssemblyVersionAttribute("0.0.2.0")]

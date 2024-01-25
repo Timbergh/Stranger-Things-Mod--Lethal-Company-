@@ -4,6 +4,7 @@ using System.Reflection;
 using LethalLib;
 using LethalLib.Modules;
 using UnityEngine;
+using UnityEngine.VFX;
 using static LethalLib.Modules.ContentLoader;
 
 // Credit to Evaisa's LethalThings mod for this code: https://github.com/EvaisaDev/LethalThings
@@ -62,7 +63,12 @@ namespace StrangerThingsMod
                 return null;
             }
 
-            return MainAssets.LoadAsset<AudioClip>(clipName);
+            AudioClip clip = MainAssets.LoadAsset<AudioClip>(clipName);
+            if (clip == null)
+            {
+                Plugin.logger.LogWarning($"Failed to load audio clip: {clipName}");
+            }
+            return clip;
         }
 
         public static void Load()
@@ -71,7 +77,7 @@ namespace StrangerThingsMod
 
             customEnemies = new List<CustomEnemy>()
             {
-                CustomEnemy.Add("Demogorgon", "Assets/Demogorgon/Demogorgon.asset", 5, Levels.LevelTypes.All, Enemies.SpawnType.Default, null, "DemogorgonTN", enabled: true),
+                CustomEnemy.Add("Demogorgon", "Assets/Demogorgon/Demogorgon.asset", 10, Levels.LevelTypes.All, Enemies.SpawnType.Default, null, "DemogorgonTN", enabled: true),
             };
 
             foreach (var enemy in customEnemies)
