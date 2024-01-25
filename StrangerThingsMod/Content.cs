@@ -77,7 +77,7 @@ namespace StrangerThingsMod
 
             customEnemies = new List<CustomEnemy>()
             {
-                CustomEnemy.Add("Demogorgon", "Assets/Demogorgon/Demogorgon.asset", 10, Levels.LevelTypes.All, Enemies.SpawnType.Default, null, "DemogorgonTN", enabled: true),
+                CustomEnemy.Add("Demogorgon", "Assets/Demogorgon/Demogorgon.asset", Config.DemogorgonSpawnWeight.Value, Levels.LevelTypes.All, Enemies.SpawnType.Default, null, "DemogorgonTN", enabled: true),
             };
 
             foreach (var enemy in customEnemies)

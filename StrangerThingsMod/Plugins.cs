@@ -11,9 +11,9 @@ namespace StrangerThingsMod
     [BepInDependency(LethalLib.Plugin.ModGUID)]
     public class Plugin : BaseUnityPlugin
     {
-        public const string ModGUID = "tim.strangerthingsmod";
+        public const string ModGUID = "scoliosis.strangerthingsmod";
         public const string ModName = "StrangerThingsMod";
-        public const string ModVersion = "0.0.2";
+        public const string ModVersion = "0.0.3";
 
         public static ManualLogSource logger;
         public static ConfigFile config;
@@ -23,6 +23,7 @@ namespace StrangerThingsMod
             logger = Logger;
             config = Config;
 
+            StrangerThingsMod.Config.Load();
             Content.Load();
 
             var harmony = new Harmony(ModGUID);

@@ -69,10 +69,13 @@ namespace StrangerThingsMod
             audioSource.PlayOneShot(demogorgonSpawnSound);
 
 
-            LightTriggerScript[] lightTriggerScripts = FindObjectsOfType<LightTriggerScript>();
-            foreach (LightTriggerScript lightTriggerScript in lightTriggerScripts)
+            if (Config.EnableFlickeringLights.Value)
             {
-                lightTriggerScript.AddDemogorgon(gameObject);
+                LightTriggerScript[] lightTriggerScripts = FindObjectsOfType<LightTriggerScript>();
+                foreach (LightTriggerScript lightTriggerScript in lightTriggerScripts)
+                {
+                    lightTriggerScript.AddDemogorgon(gameObject);
+                }
             }
 
             enemyRandom = new System.Random(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
@@ -93,6 +96,11 @@ namespace StrangerThingsMod
             agent.speed = 4.5f;
             hasStartedChasing = false;
             isFleeing = false;
+            isSwitchingToWandering = false;
+            closestSeenPlayer = null;
+            lastSeenPlayer = null;
+            playerIsInLOS = false;
+            CarriedPlayerManager.ClearCarriedPlayer();
 
             currentBehaviourStateIndex = (int)DemogorgonState.Wandering;
 
@@ -152,7 +160,7 @@ namespace StrangerThingsMod
         private void OnStep()
         {
             AudioClip stepSound = stepSounds[enemyRandom.Next(0, stepSounds.Length)];
-            audioSource.PlayOneShot(stepSound, 0.7f);
+            audioSource.PlayOneShot(stepSound, 0.4f);
         }
 
         public override void DoAIInterval()
@@ -398,7 +406,7 @@ namespace StrangerThingsMod
 
         private void RunAway()
         {
-            if (isEnemyDead || agent.hasPath || agent.pathPending || fleeCooldownTimer > 0f)
+            if (isEnemyDead || agent.hasPath || agent.pathPending || fleeCooldownTimer > 0f || !agent.isOnNavMesh)
             {
                 return;
             }

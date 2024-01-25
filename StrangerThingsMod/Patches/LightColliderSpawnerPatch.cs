@@ -16,20 +16,23 @@ namespace StrangerThingsMod
         [HarmonyPostfix]
         public static void FinishGeneratingLevelPostfix(RoundManager __instance)
         {
-            Plugin.logger.LogInfo("Adding colliders to lights");
-            eligibleLights.Clear();
-            Light[] lights = Object.FindObjectsOfType<Light>();
-
-            foreach (Light light in lights)
+            if (Config.EnableFlickeringLights.Value)
             {
-                Transform parent = light.transform.parent;
-                if (parent != null &&
-                    (parent.name.StartsWith("HangingLight") || parent.name.StartsWith("MansionWallLamp") || parent.name.StartsWith("Chandelier")))
-                {
-                    eligibleLights.Add(light.gameObject);
+                Plugin.logger.LogInfo("Adding colliders to lights");
+                eligibleLights.Clear();
+                Light[] lights = Object.FindObjectsOfType<Light>();
 
-                    LightTriggerScript lightTriggerScript = light.gameObject.AddComponent<LightTriggerScript>();
-                    lightTriggerScript.Init(light);
+                foreach (Light light in lights)
+                {
+                    Transform parent = light.transform.parent;
+                    if (parent != null &&
+                        (parent.name.StartsWith("HangingLight") || parent.name.StartsWith("MansionWallLamp") || parent.name.StartsWith("Chandelier")))
+                    {
+                        eligibleLights.Add(light.gameObject);
+
+                        LightTriggerScript lightTriggerScript = light.gameObject.AddComponent<LightTriggerScript>();
+                        lightTriggerScript.Init(light);
+                    }
                 }
             }
         }
